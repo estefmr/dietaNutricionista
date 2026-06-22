@@ -17,10 +17,15 @@ function getClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !key) {
+  const missing: string[] = [];
+  if (!url) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!key) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (missing.length > 0) {
     throw new Error(
-      "Supabase env vars missing on the server. Define NEXT_PUBLIC_SUPABASE_URL " +
-      "and SUPABASE_SERVICE_ROLE_KEY in your hosting environment."
+      `Supabase env vars missing on the server: ${missing.join(", ")}. ` +
+      `On Vercel, NEXT_PUBLIC_* variables must NOT be marked as "Sensitive" ` +
+      `or they won't be inlined at runtime.`
     );
   }
 
