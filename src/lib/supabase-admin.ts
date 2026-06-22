@@ -29,7 +29,7 @@ function getClient(): SupabaseClient {
     );
   }
 
-  _client = createClient(url, key, {
+  _client = createClient(url!, key!, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   return _client;
