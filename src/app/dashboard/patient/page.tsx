@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, Suspense, useEffect, useRef, type ComponentType, type SVGProps } from "react";
+import { useState, Suspense, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Utensils, UserRound, TrendingUp, Leaf } from "lucide-react";
+import { Utensils, UserRound, TrendingUp, type LucideIcon } from "lucide-react";
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+type IconComponent = LucideIcon;
 
 // ========================
 // TYPES

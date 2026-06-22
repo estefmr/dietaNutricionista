@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, type ComponentType, type SVGProps } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Users, Plus, UserRound, Stethoscope } from "lucide-react";
+import { Users, Plus, UserRound, Stethoscope, type LucideIcon } from "lucide-react";
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+type IconComponent = LucideIcon;
 
 interface Patient {
   id: string;
