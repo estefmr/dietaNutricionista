@@ -164,6 +164,113 @@ Para un MVP con **1 nutricionista + 30 pacientes activos**, cada paciente regist
 
 ---
 
+## 6-A. Consumo de tokens, comidas/día y pacientes por plan
+
+Análisis detallado de cuánto consume cada análisis de comida y cuántas comidas/pacientes
+soporta el sistema según el plan de Claude, Vercel y Supabase. Datos de pricing y límites de
+Anthropic verificados a 2026-06 (modelo en uso: **`claude-sonnet-4-6`** — $3.00/MTok input,
+$15.00/MTok output).
+
+### Aclaración importante: "planes" de Claude
+La API de Anthropic **no se vende por planes con cuota mensual de tokens** (eso son los planes
+de consumidor Claude Pro/Max de la app web, que **no sirven** para una app). La API es
+**pago por uso** + **usage tiers** que solo regulan: (a) el **tope de gasto mensual** y
+(b) los **límites de velocidad** (req/min y tokens/min). "Agotar los tokens del mes" significa,
+entonces, llegar al **límite de gasto** que tú configures o al tope del tier.
+
+### 1. Tokens consumidos por cada análisis de comida
+
+| Componente | Tokens (aprox.) | Notas |
+|---|---|---|
+| Imagen (redimensionada ~1024px) | ~1.200 | Visión escala con área: ≈ (ancho×alto)/750 |
+| Bloque estático del system + herramienta | ~700 | Reglas + esquema de `report_meal_analysis` |
+| Bloque dinámico (dieta + tipo de comida) | ~150 | Varía según el largo de la dieta |
+| Texto "Analiza este plato." | ~5 | |
+| **Total INPUT por análisis** | **~2.050** | |
+| **Total OUTPUT por análisis** | **~100** | JSON del tool; tope duro `max_tokens: 256` |
+
+> ⚠️ **Sobre el prompt caching:** el prefijo cacheable (herramienta + bloque estático ≈ 700
+> tokens) queda **por debajo del mínimo de 2.048 tokens de Sonnet 4.6**, así que el caching
+> **no se activa** y no aplica el descuento del 90%. Todos los cálculos de abajo costean el
+> input completo (postura conservadora). Como el bloque estático es chico, el ahorro perdido es
+> marginal: el costo lo domina la imagen, no el system.
+
+### 2. Costo por análisis según el modelo de Claude
+
+INPUT ~2.050 tok · OUTPUT ~100 tok:
+
+| Modelo | Input ($/MTok) | Output ($/MTok) | **Costo por análisis** |
+|---|---|---|---|
+| Claude Haiku 4.5 | $1.00 | $5.00 | **~$0.0026** (~0,26¢) |
+| **Claude Sonnet 4.6** (actual) | $3.00 | $15.00 | **~$0.008** (~0,8¢) |
+| Claude Opus 4.8 | $5.00 | $25.00 | **~$0.013** (~1,3¢) |
+
+### 3. Comidas/día que se pueden analizar sin agotar el gasto del mes
+
+Con el modelo actual (Sonnet 4.6, ~$0.008/análisis), según el **presupuesto mensual** que fijes:
+
+| Presupuesto mensual | Análisis/mes | **Comidas/día** |
+|---|---|---|
+| $20 | ~2.500 | **~83/día** |
+| $50 | ~6.250 | **~208/día** |
+| $100 | ~12.500 | **~416/día** |
+| $500 (tope del Tier 1/2) | ~62.500 | **~2.083/día** |
+
+**Tope por usage tier (gasto mensual máximo antes de tener que subir de tier):**
+
+| Tier | Depósito para alcanzarlo | Tope de gasto/mes | Análisis/mes (Sonnet) |
+|---|---|---|---|
+| Tier 1 | $5 | $500 | ~62.500 |
+| Tier 2 | $40 | $500 | ~62.500 |
+| Tier 3 | $200 | $1.000 | ~125.000 |
+| Tier 4 | $400 | $200.000 | ~25.000.000 |
+
+> **Los límites de velocidad NO son el cuello de botella aquí.** En Tier 1, Sonnet 4.x permite
+> 50 req/min y 30.000 tokens input/min → ~14 análisis por minuto (~840/hora). Un solo
+> nutricionista nunca se acerca a eso. La capacidad real la define el **presupuesto**, no la
+> velocidad.
+
+### 4. Cuántos pacientes soporta el sistema
+
+**Supuesto:** 3 comidas/día por paciente → **90 análisis/mes por paciente**.
+
+**Costo de IA por paciente/mes, y pacientes soportados por presupuesto:**
+
+| Modelo | Costo/paciente/mes | Pacientes con $20/mes | Pacientes con $50/mes | Pacientes con $100/mes |
+|---|---|---|---|---|
+| Haiku 4.5 | ~$0.23 | ~85 | ~213 | ~427 |
+| **Sonnet 4.6** (actual) | ~$0.72 | ~27 | ~69 | ~138 |
+| Opus 4.8 | ~$1.15 | ~17 | ~43 | ~86 |
+
+#### Límite por Vercel
+
+- **Estado actual: el proyecto está en plan Hobby (gratis).** Hobby **prohíbe uso comercial**
+  por ToS → para cobrar por el producto hay que pasar a **Pro ($20/mes)**. El motivo de migrar
+  es legal/confiabilidad, **no** capacidad.
+- **Capacidad:** cada análisis = 1 invocación serverless (~3-8s). 100 pacientes × 90/mes =
+  9.000 invocaciones/mes, consumo ínfimo (~12 GB-hora) frente al cupo de Pro (1.000 GB-hora) y
+  al ancho de banda (las imágenes van comprimidas a ~150-200 KB). **Vercel soporta cientos de
+  pacientes sin despeinarse**; no es el límite para la cantidad de pacientes.
+
+#### Límite por Supabase
+
+- **Tamaño de datos:** una fila de `meal_logs` pesa ~150-250 bytes. 100 pacientes × 90/mes × 12
+  meses ≈ 108.000 filas/año ≈ **~25 MB/año**. El plan Free trae 500 MB y el Pro 8 GB → el tamaño
+  **nunca** es el cuello de botella (años de margen).
+- **El verdadero motivo de pasar a Pro ($25/mes)** es que el plan Free **pausa el proyecto tras
+  7 días de inactividad** y no trae backups diarios — inviable para producción. No es por
+  cantidad de pacientes.
+
+#### Conclusión de capacidad
+
+> El **único costo que escala con los pacientes es Claude** (~$0.72/paciente/mes en Sonnet).
+> Vercel y Supabase, en sus planes de entrada ($20 + $25/mes), soportan **cientos** de pacientes
+> sin problema de capacidad — se contratan por ToS/confiabilidad, no por volumen. Para el caso
+> típico de **1 nutricionista con 30-100 pacientes**, la IA cuesta **~$22-72/mes** y toda la
+> infraestructura queda holgada.
+
+---
+
 ## 7. Roadmap post-lanzamiento (no bloqueante)
 
 Mejoras que pueden esperar al post-MVP pero conviene tener en el radar:

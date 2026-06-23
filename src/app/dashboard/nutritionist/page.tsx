@@ -58,13 +58,9 @@ function TabPatients({ onSelectPatient }: { onSelectPatient: (p: Patient) => voi
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Stats */}
       <div className="nut-stats-row">
-        <div className="nut-stat-card">
+        <div className="nut-stat-card" style={{ gridColumn: "1 / -1" }}>
           <p className="nut-stat-number">{patients.length}</p>
           <p className="nut-stat-label">Pacientes activos</p>
-        </div>
-        <div className="nut-stat-card">
-          <p className="nut-stat-number">✅</p>
-          <p className="nut-stat-label">Sistema activo con IA</p>
         </div>
       </div>
 
