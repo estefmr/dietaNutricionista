@@ -636,25 +636,29 @@ export default function NutritionistDashboard() {
         <div className="safe-bottom" />
       </div>
 
-      {/* Bottom nav (only when not in patient detail) */}
-      {!selectedPatient && (
-        <nav className="nut-bottom-nav">
-          {NUT_TABS.map(item => {
-            const Icon = item.Icon;
-            return (
-              <button
-                key={item.id}
-                className={`nut-nav-item ${activeTab === item.id ? "active" : ""}`}
-                onClick={() => setActiveTab(item.id)}
-              >
-                <span className="nut-nav-icon"><Icon size={22} strokeWidth={2} /></span>
-                <span className="nut-nav-label">{item.label}</span>
-                {activeTab === item.id && <span className="nut-nav-indicator" />}
-              </button>
-            );
-          })}
-        </nav>
-      )}
+      {/* Bottom nav: siempre fijo abajo, incluso en el detalle del paciente */}
+      <nav className="nut-bottom-nav">
+        {NUT_TABS.map(item => {
+          const Icon = item.Icon;
+          // En el detalle del paciente ningún tab está "activo"; tocar uno
+          // cierra el detalle y navega al tab correspondiente.
+          const isActive = !selectedPatient && activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              className={`nut-nav-item ${isActive ? "active" : ""}`}
+              onClick={() => {
+                setSelectedPatient(null);
+                setActiveTab(item.id);
+              }}
+            >
+              <span className="nut-nav-icon"><Icon size={22} strokeWidth={2} /></span>
+              <span className="nut-nav-label">{item.label}</span>
+              {isActive && <span className="nut-nav-indicator" />}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
