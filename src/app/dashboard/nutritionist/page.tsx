@@ -156,8 +156,6 @@ function PatientDetail({ patient, onBack }: { patient: Patient; onBack: () => vo
     }
   };
 
-  const compliantCount = logs.filter(l => l.is_compliant).length;
-
   const resetMessage = `¡Hola, *${patient.name}*! He actualizado tus credenciales de acceso para NutriAI:\n\n🌐 Enlace: ${typeof window !== "undefined" ? window.location.origin : ""}/login\n👤 Usuario: *${usernameToUse}*\n🔑 Nueva Contraseña: *${newPassword}*\n\n¡Ya puedes ingresar! 🥗`;
   const resetWhatsappUrl = `https://wa.me/?text=${encodeURIComponent(resetMessage)}`;
 
@@ -178,15 +176,9 @@ function PatientDetail({ patient, onBack }: { patient: Patient; onBack: () => vo
 
       {/* Mini stats */}
       <div className="nut-stats-row">
-        <div className="nut-stat-card">
+        <div className="nut-stat-card" style={{ gridColumn: "1 / -1" }}>
           <p className="nut-stat-number">{logs.length}</p>
           <p className="nut-stat-label">Comidas analizadas</p>
-        </div>
-        <div className="nut-stat-card">
-          <p className="nut-stat-number" style={{ color: logs.length > 0 ? "#00a878" : "#94a3b8" }}>
-            {logs.length > 0 ? `${Math.round((compliantCount / logs.length) * 100)}%` : "—"}
-          </p>
-          <p className="nut-stat-label">Cumplimiento</p>
         </div>
       </div>
 
