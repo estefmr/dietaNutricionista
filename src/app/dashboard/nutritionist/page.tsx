@@ -114,6 +114,9 @@ function PatientDetail({ patient, onBack }: { patient: Patient; onBack: () => vo
   const [newPassword, setNewPassword] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [showResetSuccess, setShowResetSuccess] = useState(false);
+  const [isEditingDiet, setIsEditingDiet] = useState(false);
+  const [dietDraft, setDietDraft] = useState(patient.diet_instructions);
+  const [isSavingDiet, setIsSavingDiet] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -149,6 +152,31 @@ function PatientDetail({ patient, onBack }: { patient: Patient; onBack: () => vo
       toast.error(`Error: ${err.message}`);
     } finally {
       setIsResetting(false);
+    }
+  };
+
+  const handleSaveDiet = async () => {
+    const next = dietDraft.trim();
+    if (!next) {
+      toast.error("La dieta no puede estar vacía.");
+      return;
+    }
+    setIsSavingDiet(true);
+    try {
+      const res = await fetch(`/api/patients/${patient.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ diet_instructions: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al actualizar la dieta");
+      patient.diet_instructions = next; // refleja el cambio en la vista actual
+      setIsEditingDiet(false);
+      toast.success("Dieta actualizada con éxito.");
+    } catch (err: any) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setIsSavingDiet(false);
     }
   };
 
@@ -303,8 +331,50 @@ function PatientDetail({ patient, onBack }: { patient: Patient; onBack: () => vo
 
       {/* Dieta asignada */}
       <div className="meal-card">
-        <p className="profile-section-title">🥗 Dieta Asignada</p>
-        <div className="diet-preview-box">{patient.diet_instructions}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <p className="profile-section-title" style={{ margin: 0 }}>🥗 Dieta Asignada</p>
+          {!isEditingDiet && (
+            <button
+              className="btn-copy"
+              style={{ margin: 0, padding: "6px 14px", fontSize: "0.78rem", width: "auto" }}
+              onClick={() => { setDietDraft(patient.diet_instructions); setIsEditingDiet(true); }}
+            >
+              ✏️ Editar
+            </button>
+          )}
+        </div>
+
+        {isEditingDiet ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+            <textarea
+              className="textarea-premium"
+              value={dietDraft}
+              onChange={e => setDietDraft(e.target.value)}
+              rows={6}
+              placeholder="Indicaciones de la dieta..."
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn-analyze"
+                style={{ flex: 1, margin: 0 }}
+                onClick={handleSaveDiet}
+                disabled={isSavingDiet || !dietDraft.trim()}
+              >
+                {isSavingDiet ? "Guardando..." : "💾 Guardar dieta"}
+              </button>
+              <button
+                className="btn-copy"
+                style={{ margin: 0, padding: "0 18px", width: "auto" }}
+                onClick={() => { setIsEditingDiet(false); setDietDraft(patient.diet_instructions); }}
+                disabled={isSavingDiet}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="diet-preview-box" style={{ marginTop: 10 }}>{patient.diet_instructions}</div>
+        )}
       </div>
 
       {/* Historial de comidas */}
